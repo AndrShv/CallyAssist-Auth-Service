@@ -1,0 +1,21 @@
+
+networks:
+  auth-net:
+    driver: bridge
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: auth-cally-mobile-service-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 1111
+      MYSQL_DATABASE: authservice
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - auth-net
+volumes:
+  mysql_data:
