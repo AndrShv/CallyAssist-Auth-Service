@@ -2,9 +2,11 @@ package com.example.project.config;
 
 import com.example.project.filter.JwtFilter;
 import com.example.project.handlers.OAuth2SuccessHandler;
+import com.example.project.interfaces.GenerateTokenForOAuth2;
 import com.example.project.services.custom.CustomOAuth2UserService;
 import com.example.project.services.custom.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,7 +17,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -29,8 +30,10 @@ public class SecurityConfig {
     private final JwtFilter jwtFilter;
     private final CustomUserDetailsService userDetailsService;
     private final CustomOAuth2UserService oAuth2UserService;
-    private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${app.oauth2.redirect-uri:http://localhost:8081/api/auth/oauth2/token}")
+    private String redirectUri;
 
     private static final String[] PUBLIC = {
             "/api/auth/register",
@@ -44,7 +47,10 @@ public class SecurityConfig {
     };
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http,
+            OAuth2SuccessHandler oAuth2SuccessHandler
+    ) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -57,9 +63,15 @@ public class SecurityConfig {
                         .userInfoEndpoint(ui -> ui.oidcUserService(oAuth2UserService))
                         .successHandler(oAuth2SuccessHandler)
                 )
+                .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public OAuth2SuccessHandler oAuth2SuccessHandler(GenerateTokenForOAuth2 generateTokenForOAuth2) {
+        return new OAuth2SuccessHandler(generateTokenForOAuth2, redirectUri);
     }
 
     @Bean
@@ -74,5 +86,4 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
         return cfg.getAuthenticationManager();
     }
-
 }
