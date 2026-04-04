@@ -46,7 +46,7 @@ public class AuthRestController {
         }
 
         log.debug("REST request to get user: {}", authentication.getName());
-        UUID userId = (UUID) authentication.getPrincipal();
+        UUID userId = UUID.fromString(authentication.getPrincipal().toString());
         return ResponseEntity.ok(getMe.getMe((userId)));
     }
 
