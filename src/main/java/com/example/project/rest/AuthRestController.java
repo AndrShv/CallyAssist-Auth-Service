@@ -1,9 +1,6 @@
 package com.example.project.rest;
 
-import com.example.project.dto.AuthInfoDTO;
-import com.example.project.dto.UserLoginDTO;
-import com.example.project.dto.UserRegisterDTO;
-import com.example.project.dto.UserResponseDTO;
+import com.example.project.dto.*;
 import com.example.project.interfaces.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +22,7 @@ public class AuthRestController {
     private final Login  login;
     private final GetMe getMe;
     private final GenerateTokenForOAuth2 generateTokenForOAuth2;
+    private final GetSubscriptionInfo getSubscriptionInfo;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponseDTO> register(@Valid @RequestBody UserRegisterDTO dto) {
@@ -60,5 +58,10 @@ public class AuthRestController {
                 "token", token,
                 "type", "Bearer"
         ));
+    }
+    @GetMapping("/subscription")
+    public ResponseEntity<SubscriptionInfoDTO> getSubscription(@RequestParam UUID userId) {
+        log.debug("REST request to get subscription info for userId: {}", userId);
+        return ResponseEntity.ok(getSubscriptionInfo.getSubscriptionInfo(userId));
     }
 }

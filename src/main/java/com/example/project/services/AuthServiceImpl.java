@@ -6,10 +6,7 @@ import com.example.project.enums.Role;
 import com.example.project.enums.SubscriptionPlan;
 import com.example.project.exceptions.UserAlreadyExistsException;
 import com.example.project.exceptions.UserNotFoundByIDException;
-import com.example.project.interfaces.GenerateTokenForOAuth2;
-import com.example.project.interfaces.GetMe;
-import com.example.project.interfaces.Login;
-import com.example.project.interfaces.Register;
+import com.example.project.interfaces.*;
 import com.example.project.mappers.UserMapper;
 import com.example.project.repository.UserRepository;
 import com.example.project.services.custom.CustomUserDetails;
@@ -30,7 +27,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthServiceImpl implements Register, Login, GetMe, GenerateTokenForOAuth2 {
+public class AuthServiceImpl implements Register, Login, GetMe, GenerateTokenForOAuth2, GetSubscriptionInfo {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -114,5 +111,20 @@ public class AuthServiceImpl implements Register, Login, GetMe, GenerateTokenFor
                 .orElseThrow(() -> new UserNotFoundByIDException("User not found: " + userId));
 
         return userMapper.toAuthInfoDTO(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SubscriptionInfoDTO getSubscriptionInfo(UUID userId) {
+        log.info("Getting subscription info for userId: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundByIDException("User not found: " + userId));
+
+        return SubscriptionInfoDTO.builder()
+                .subscriptionPlan(user.getSubscriptionPlan())
+                .subscriptionExpiresAt(user.getSubscriptionExpiresAt())
+                .active(user.getActive())
+                .build();
     }
 }
