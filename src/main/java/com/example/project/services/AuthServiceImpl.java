@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,9 +69,7 @@ public class AuthServiceImpl implements Register, Login, GetMe, GenerateTokenFor
 
         user = userRepository.save(user);
         log.info("Registered: {} ({})", user.getEmail(), user.getId());
-
-        String token = jwtUtil.generateToken(user.getEmail(), user.getId(), List.of(user.getRole()));
-        return userMapper.toUserResponseDTO(user, token);
+        return userMapper.toUserResponseDTO(user, null);
     }
 
     @Override
@@ -78,19 +77,25 @@ public class AuthServiceImpl implements Register, Login, GetMe, GenerateTokenFor
         String email = dto.getEmail().trim().toLowerCase(Locale.ROOT);
         log.info("Login attempt: {}", email);
 
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + email));
+
+        if (user.getPassword() == null || user.getPassword().isBlank()) {
+            throw new RuntimeException("Пользователь зарегистрирован через OAuth2, войдите через Google");
+        }
+
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, dto.getPassword())
         );
 
         CustomUserDetails details = (CustomUserDetails) auth.getPrincipal();
-        User user = details.getUser();
+        user = details.getUser();
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getId(), List.of(user.getRole()));
         log.info("Login success: {} ({})", user.getEmail(), user.getId());
 
         return userMapper.toUserResponseDTO(user, token);
     }
-
     @Override
     @Transactional(readOnly = true)
     public String generateTokenForOAuth2(UUID userId) {

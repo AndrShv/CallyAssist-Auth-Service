@@ -36,6 +36,7 @@ public class SecurityConfig {
     private String redirectUri;
 
     private static final String[] PUBLIC = {
+            "/api/auth/subscription/**",
             "/api/auth/register",
             "/api/auth/login",
             "/api/auth/oauth2/token",
@@ -64,7 +65,7 @@ public class SecurityConfig {
                         .successHandler(oAuth2SuccessHandler)
                 )
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+              .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
