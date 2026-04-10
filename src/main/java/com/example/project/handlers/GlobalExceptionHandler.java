@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -35,6 +36,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUserNotFound(UsernameNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ErrorResponse.of(401, ex.getMessage(), "USER_NOT_FOUND"));
+    }
+
+    // Невалидный тип параметра в URL/query (например невалидный UUID) → 400
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String paramName  = ex.getPropertyName();
+        Object paramValue = ex.getValue();
+        String msg = "Некорректное значение параметра '%s': %s".formatted(paramName, paramValue);
+        log.debug("Type mismatch: {}", msg);
+        return ResponseEntity.badRequest()
+                .body(ErrorResponse.of(400, msg, "INVALID_PARAMETER"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
