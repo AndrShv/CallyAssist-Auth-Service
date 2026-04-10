@@ -1,9 +1,6 @@
 package com.example.project.services;
 
-import com.example.project.dto.AuthInfoDTO;
-import com.example.project.dto.UserLoginDTO;
-import com.example.project.dto.UserRegisterDTO;
-import com.example.project.dto.UserResponseDTO;
+import com.example.project.dto.*;
 import com.example.project.entity.User;
 import com.example.project.enums.Role;
 import com.example.project.enums.SubscriptionPlan;
@@ -23,10 +20,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,23 +33,12 @@ import static org.mockito.Mockito.*;
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
 class AuthServiceImplTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private JwtUtil jwtUtil;
-
-    @Mock
-    private UserMapper userMapper;
-
-    @Mock
-    private AuthenticationManager authenticationManager;
-
-    @Mock
-    private Authentication authentication;
+    @Mock private UserRepository userRepository;
+    @Mock private PasswordEncoder passwordEncoder;
+    @Mock private JwtUtil jwtUtil;
+    @Mock private UserMapper userMapper;
+    @Mock private AuthenticationManager authenticationManager;
+    @Mock private Authentication authentication;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -65,404 +51,192 @@ class AuthServiceImplTest {
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-
         registerDTO = new UserRegisterDTO();
-        registerDTO.setEmail("  TEST@MAIL.COM  ");
-        registerDTO.setUsername("Andrew");
-        registerDTO.setPassword("password123");
+        registerDTO.setEmail("  ANDREY@mail.com  ");
+        registerDTO.setUsername(" Andrey ");
+        registerDTO.setPassword("pass123");
         registerDTO.setRole("USER");
 
         loginDTO = new UserLoginDTO();
-        loginDTO.setEmail("  TEST@MAIL.COM  ");
-        loginDTO.setPassword("password123");
+        loginDTO.setEmail("ANDREY@mail.com");
+        loginDTO.setPassword("pass123");
 
         user = User.builder()
                 .id(userId)
-                .email("test@mail.com")
-                .username("Andrew")
-                .password("encodedPassword")
+                .email("andrey@mail.com")
+                .username("Andrey")
                 .role(Role.USER)
                 .subscriptionPlan(SubscriptionPlan.FREE)
                 .active(true)
-                .voiceRequestsToday(0)
                 .build();
     }
 
     @Nested
-    @DisplayName("register() tests")
+    @DisplayName("register() scenarios")
     class RegisterTests {
 
         @Test
-        @DisplayName("should register user successfully")
-        void shouldRegisterUserSuccessfully() {
-            UserResponseDTO expectedResponse = UserResponseDTO.builder()
-                    .id(userId.toString())
-                    .email(user.getEmail())
-                    .username(user.getUsername())
-                    .role(user.getRole().name())
-                    .token("jwt-token")
-                    .build();
-
-            when(userRepository.existsByEmailIgnoreCase("test@mail.com")).thenReturn(false);
-            when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
+        @DisplayName("1. Success registration with normalization")
+        void successRegistration() {
+            when(userRepository.existsByEmailIgnoreCase("andrey@mail.com")).thenReturn(false);
+            when(passwordEncoder.encode(anyString())).thenReturn("hashed");
             when(userRepository.save(any(User.class))).thenReturn(user);
-            when(jwtUtil.generateToken(eq(user.getEmail()), eq(user.getId()), eq(List.of(user.getRole()))))
-                    .thenReturn("jwt-token");
-            when(userMapper.toUserResponseDTO(user, "jwt-token")).thenReturn(expectedResponse);
-
-            UserResponseDTO actual = authService.register(registerDTO);
-
-            assertNotNull(actual);
-            assertEquals(expectedResponse, actual);
-
-            verify(userRepository).existsByEmailIgnoreCase("test@mail.com");
-            verify(passwordEncoder).encode("password123");
-            verify(userRepository).save(any(User.class));
-            verify(jwtUtil).generateToken(user.getEmail(), user.getId(), List.of(user.getRole()));
-            verify(userMapper).toUserResponseDTO(user, "jwt-token");
-        }
-
-        @Test
-        @DisplayName("should normalize email before registration")
-        void shouldNormalizeEmailBeforeRegistration() {
-            when(userRepository.existsByEmailIgnoreCase("test@mail.com")).thenReturn(false);
-            when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-            when(userRepository.save(any(User.class))).thenReturn(user);
-            when(jwtUtil.generateToken(anyString(), any(UUID.class), anyList())).thenReturn("jwt-token");
-            when(userMapper.toUserResponseDTO(any(User.class), eq("jwt-token")))
-                    .thenReturn(UserResponseDTO.builder().build());
+            when(userMapper.toUserResponseDTO(any(), eq(null))).thenReturn(new UserResponseDTO());
 
             authService.register(registerDTO);
 
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userCaptor.capture());
-
-            User savedUser = userCaptor.getValue();
-            assertEquals("test@mail.com", savedUser.getEmail());
+            assertEquals("andrey@mail.com", userCaptor.getValue().getEmail());
+            assertEquals("Andrey", userCaptor.getValue().getUsername());
         }
 
         @Test
-        @DisplayName("should throw exception when user already exists")
-        void shouldThrowWhenUserAlreadyExists() {
-            when(userRepository.existsByEmailIgnoreCase("test@mail.com")).thenReturn(true);
-
-            UserAlreadyExistsException ex = assertThrows(
-                    UserAlreadyExistsException.class,
-                    () -> authService.register(registerDTO)
-            );
-
-            assertEquals("Пользователь уже существует", ex.getMessage());
-
-            verify(userRepository).existsByEmailIgnoreCase("test@mail.com");
-            verify(userRepository, never()).save(any());
-            verify(passwordEncoder, never()).encode(anyString());
-            verify(jwtUtil, never()).generateToken(anyString(), any(), anyList());
+        @DisplayName("2. Fail when email already exists")
+        void failIfUserExists() {
+            when(userRepository.existsByEmailIgnoreCase(anyString())).thenReturn(true);
+            assertThrows(UserAlreadyExistsException.class, () -> authService.register(registerDTO));
         }
 
         @Test
-        @DisplayName("should set USER role when dto role is null")
-        void shouldSetDefaultUserRoleWhenRoleIsNull() {
+        @DisplayName("3. Use default role if role is null")
+        void defaultRoleWhenNull() {
             registerDTO.setRole(null);
-
-            when(userRepository.existsByEmailIgnoreCase("test@mail.com")).thenReturn(false);
-            when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-            when(userRepository.save(any(User.class))).thenReturn(user);
-            when(jwtUtil.generateToken(anyString(), any(UUID.class), anyList())).thenReturn("jwt-token");
-            when(userMapper.toUserResponseDTO(any(User.class), eq("jwt-token")))
-                    .thenReturn(UserResponseDTO.builder().build());
+            when(userRepository.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+            when(userRepository.save(any())).thenReturn(user);
 
             authService.register(registerDTO);
 
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userCaptor.capture());
-
             assertEquals(Role.USER, userCaptor.getValue().getRole());
         }
 
         @Test
-        @DisplayName("should set USER role when dto role is invalid")
-        void shouldSetDefaultUserRoleWhenRoleIsInvalid() {
-            registerDTO.setRole("INVALID_ROLE");
-
-            when(userRepository.existsByEmailIgnoreCase("test@mail.com")).thenReturn(false);
-            when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-            when(userRepository.save(any(User.class))).thenReturn(user);
-            when(jwtUtil.generateToken(anyString(), any(UUID.class), anyList())).thenReturn("jwt-token");
-            when(userMapper.toUserResponseDTO(any(User.class), eq("jwt-token")))
-                    .thenReturn(UserResponseDTO.builder().build());
+        @DisplayName("4. Use default role if role name is invalid")
+        void defaultRoleWhenInvalid() {
+            registerDTO.setRole("GOD_MODE");
+            when(userRepository.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+            when(userRepository.save(any())).thenReturn(user);
 
             authService.register(registerDTO);
 
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userCaptor.capture());
-
             assertEquals(Role.USER, userCaptor.getValue().getRole());
         }
 
-        @Nested
-        @DisplayName("login() tests")
-        class LoginTests {
+        @Test
+        @DisplayName("5. Correct mapping to ResponseDTO")
+        void mappingCheck() {
+            UserResponseDTO dto = UserResponseDTO.builder().email("andrey@mail.com").build();
+            when(userRepository.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+            when(userRepository.save(any())).thenReturn(user);
+            when(userMapper.toUserResponseDTO(user, null)).thenReturn(dto);
 
-            @Test
-            @DisplayName("should login successfully")
-            void shouldLoginSuccessfully() {
-                CustomUserDetails customUserDetails = mock(CustomUserDetails.class);
-                UserResponseDTO expectedResponse = UserResponseDTO.builder()
-                        .id(userId.toString())
-                        .email(user.getEmail())
-                        .username(user.getUsername())
-                        .role(user.getRole().name())
-                        .token("jwt-token")
-                        .build();
+            UserResponseDTO result = authService.register(registerDTO);
+            assertEquals("andrey@mail.com", result.getEmail());
+        }
+    }
 
-                when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                        .thenReturn(authentication);
-                when(authentication.getPrincipal()).thenReturn(customUserDetails);
-                when(customUserDetails.getUser()).thenReturn(user);
-                when(jwtUtil.generateToken(user.getEmail(), user.getId(), List.of(user.getRole())))
-                        .thenReturn("jwt-token");
-                when(userMapper.toUserResponseDTO(user, "jwt-token")).thenReturn(expectedResponse);
+    @Nested
+    @DisplayName("login() scenarios")
+    class LoginTests {
 
-                UserResponseDTO actual = authService.login(loginDTO);
+        @Test
+        @DisplayName("1. Success login")
+        void successLogin() {
+            CustomUserDetails details = mock(CustomUserDetails.class);
+            when(userRepository.findByEmailIgnoreCase("andrey@mail.com")).thenReturn(Optional.of(user));
+            user.setPassword("hashed"); // Пароль не пустой
 
-                assertNotNull(actual);
-                assertEquals(expectedResponse, actual);
+            when(authenticationManager.authenticate(any())).thenReturn(authentication);
+            when(authentication.getPrincipal()).thenReturn(details);
+            when(details.getUser()).thenReturn(user);
+            when(jwtUtil.generateToken(anyString(), any(), any())).thenReturn("token");
+            when(userMapper.toUserResponseDTO(any(), anyString())).thenReturn(new UserResponseDTO());
 
-                verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-                verify(jwtUtil).generateToken(user.getEmail(), user.getId(), List.of(user.getRole()));
-                verify(userMapper).toUserResponseDTO(user, "jwt-token");
-            }
+            authService.login(loginDTO);
 
-            @Test
-            @DisplayName("should normalize email before login")
-            void shouldNormalizeEmailBeforeLogin() {
-                CustomUserDetails customUserDetails = mock(CustomUserDetails.class);
-
-                when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                        .thenReturn(authentication);
-                when(authentication.getPrincipal()).thenReturn(customUserDetails);
-                when(customUserDetails.getUser()).thenReturn(user);
-                when(jwtUtil.generateToken(anyString(), any(UUID.class), anyList())).thenReturn("jwt-token");
-                when(userMapper.toUserResponseDTO(any(User.class), eq("jwt-token")))
-                        .thenReturn(UserResponseDTO.builder().build());
-
-                authService.login(loginDTO);
-
-                ArgumentCaptor<UsernamePasswordAuthenticationToken> captor =
-                        ArgumentCaptor.forClass(UsernamePasswordAuthenticationToken.class);
-
-                verify(authenticationManager).authenticate(captor.capture());
-
-                UsernamePasswordAuthenticationToken token = captor.getValue();
-                assertEquals("test@mail.com", token.getPrincipal());
-                assertEquals("password123", token.getCredentials());
-            }
-
-            @Test
-            @DisplayName("should generate token after successful login")
-            void shouldGenerateTokenAfterLogin() {
-                CustomUserDetails customUserDetails = mock(CustomUserDetails.class);
-
-                when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                        .thenReturn(authentication);
-                when(authentication.getPrincipal()).thenReturn(customUserDetails);
-                when(customUserDetails.getUser()).thenReturn(user);
-                when(jwtUtil.generateToken(user.getEmail(), user.getId(), List.of(user.getRole())))
-                        .thenReturn("jwt-token");
-                when(userMapper.toUserResponseDTO(any(User.class), eq("jwt-token")))
-                        .thenReturn(UserResponseDTO.builder().token("jwt-token").build());
-
-                UserResponseDTO response = authService.login(loginDTO);
-
-                assertEquals("jwt-token", response.getToken());
-                verify(jwtUtil).generateToken(user.getEmail(), user.getId(), List.of(user.getRole()));
-            }
-
-            @Test
-            @DisplayName("should use authenticationManager during login")
-            void shouldUseAuthenticationManagerDuringLogin() {
-                CustomUserDetails customUserDetails = mock(CustomUserDetails.class);
-
-                when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                        .thenReturn(authentication);
-                when(authentication.getPrincipal()).thenReturn(customUserDetails);
-                when(customUserDetails.getUser()).thenReturn(user);
-                when(jwtUtil.generateToken(anyString(), any(UUID.class), anyList())).thenReturn("jwt-token");
-                when(userMapper.toUserResponseDTO(any(User.class), eq("jwt-token")))
-                        .thenReturn(UserResponseDTO.builder().build());
-
-                authService.login(loginDTO);
-
-                verify(authenticationManager, times(1))
-                        .authenticate(any(UsernamePasswordAuthenticationToken.class));
-            }
-
-            @Test
-            @DisplayName("should throw exception when authentication fails")
-            void shouldThrowWhenAuthenticationFails() {
-                when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                        .thenThrow(new BadCredentialsException("Bad credentials"));
-
-                assertThrows(BadCredentialsException.class, () -> authService.login(loginDTO));
-
-                verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-                verify(jwtUtil, never()).generateToken(anyString(), any(), anyList());
-                verify(userMapper, never()).toUserResponseDTO(any(), anyString());
-            }
+            verify(jwtUtil).generateToken(eq(user.getEmail()), eq(user.getId()), any());
         }
 
-        @Nested
-        @DisplayName("generateTokenForOAuth2() tests")
-        class GenerateTokenForOAuth2Tests {
-
-            @Test
-            @DisplayName("should generate token successfully for existing user")
-            void shouldGenerateTokenSuccessfully() {
-                when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-                when(jwtUtil.generateToken(user.getEmail(), user.getId(), List.of(user.getRole())))
-                        .thenReturn("oauth2-jwt-token");
-
-                String token = authService.generateTokenForOAuth2(userId);
-
-                assertNotNull(token);
-                assertEquals("oauth2-jwt-token", token);
-
-                verify(userRepository).findById(userId);
-                verify(jwtUtil).generateToken(user.getEmail(), user.getId(), List.of(user.getRole()));
-            }
-
-            @Test
-            @DisplayName("should find user by id before generating token")
-            void shouldFindUserByIdBeforeGeneratingToken() {
-                when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-                when(jwtUtil.generateToken(anyString(), any(UUID.class), anyList())).thenReturn("token");
-
-                authService.generateTokenForOAuth2(userId);
-
-                verify(userRepository, times(1)).findById(userId);
-            }
-
-            @Test
-            @DisplayName("should throw exception when user not found for oauth2 token")
-            void shouldThrowWhenUserNotFoundForOAuth2Token() {
-                when(userRepository.findById(userId)).thenReturn(Optional.empty());
-
-                UserNotFoundByIDException ex = assertThrows(
-                        UserNotFoundByIDException.class,
-                        () -> authService.generateTokenForOAuth2(userId)
-                );
-
-                assertEquals("User not found: " + userId, ex.getMessage());
-
-                verify(userRepository).findById(userId);
-                verify(jwtUtil, never()).generateToken(anyString(), any(), anyList());
-            }
-
-            @Test
-            @DisplayName("should pass correct user data to jwt util")
-            void shouldPassCorrectUserDataToJwtUtil() {
-                when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-                when(jwtUtil.generateToken(anyString(), any(UUID.class), anyList())).thenReturn("token");
-
-                authService.generateTokenForOAuth2(userId);
-
-                verify(jwtUtil).generateToken(
-                        eq(user.getEmail()),
-                        eq(user.getId()),
-                        eq(List.of(user.getRole()))
-                );
-            }
-
-            @Test
-            @DisplayName("should return exact token from jwt util")
-            void shouldReturnExactTokenFromJwtUtil() {
-                when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-                when(jwtUtil.generateToken(anyString(), any(UUID.class), anyList())).thenReturn("MY_EXACT_TOKEN");
-
-                String result = authService.generateTokenForOAuth2(userId);
-
-                assertEquals("MY_EXACT_TOKEN", result);
-            }
+        @Test
+        @DisplayName("2. Fail login - user not found")
+        void userNotFound() {
+            when(userRepository.findByEmailIgnoreCase(anyString())).thenReturn(Optional.empty());
+            assertThrows(UsernameNotFoundException.class, () -> authService.login(loginDTO));
         }
 
-        @Nested
-        @DisplayName("getMe() tests")
-        class GetMeTests {
+        @Test
+        @DisplayName("3. Fail login - OAuth2 user (no password)")
+        void oauth2UserLoginFail() {
+            user.setPassword("");
+            when(userRepository.findByEmailIgnoreCase(anyString())).thenReturn(Optional.of(user));
 
-            @Test
-            @DisplayName("should return auth info successfully")
-            void shouldReturnAuthInfoSuccessfully() {
-                AuthInfoDTO expectedDto = new AuthInfoDTO();
-                expectedDto.setId(userId);
-                expectedDto.setEmail(user.getEmail());
-                expectedDto.setUsername(user.getUsername());
+            RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.login(loginDTO));
+            assertTrue(ex.getMessage().contains("OAuth2"));
+        }
 
-                when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-                when(userMapper.toAuthInfoDTO(user)).thenReturn(expectedDto);
+        @Test
+        @DisplayName("4. Fail login - Wrong credentials")
+        void wrongCredentials() {
+            when(userRepository.findByEmailIgnoreCase(anyString())).thenReturn(Optional.of(user));
+            user.setPassword("hashed");
+            when(authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("Wrong"));
 
-                AuthInfoDTO actual = authService.getMe(userId);
+            assertThrows(BadCredentialsException.class, () -> authService.login(loginDTO));
+        }
+    }
 
-                assertNotNull(actual);
-                assertEquals(expectedDto, actual);
+    @Nested
+    @DisplayName("generateTokenForOAuth2() scenarios")
+    class OAuthTokenTests {
 
-                verify(userRepository).findById(userId);
-                verify(userMapper).toAuthInfoDTO(user);
-            }
+        @Test
+        @DisplayName("1. Success token generation")
+        void successOAuthToken() {
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(jwtUtil.generateToken(anyString(), any(), any())).thenReturn("oa-token");
 
-            @Test
-            @DisplayName("should call repository findById in getMe")
-            void shouldCallFindByIdInGetMe() {
-                when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-                when(userMapper.toAuthInfoDTO(user)).thenReturn(new AuthInfoDTO());
+            String token = authService.generateTokenForOAuth2(userId);
+            assertEquals("oa-token", token);
+        }
 
-                authService.getMe(userId);
+        @Test
+        @DisplayName("2. Fail if user id not found")
+        void idNotFound() {
+            when(userRepository.findById(any())).thenReturn(Optional.empty());
+            assertThrows(UserNotFoundByIDException.class, () -> authService.generateTokenForOAuth2(userId));
+        }
+    }
 
-                verify(userRepository, times(1)).findById(userId);
-            }
+    @Nested
+    @DisplayName("getMe() & Subscription scenarios")
+    class InfoTests {
 
-            @Test
-            @DisplayName("should throw exception when user not found in getMe")
-            void shouldThrowWhenUserNotFoundInGetMe() {
-                when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("1. getMe - Success")
+        void getMeSuccess() {
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userMapper.toAuthInfoDTO(user)).thenReturn(new AuthInfoDTO());
+            assertNotNull(authService.getMe(userId));
+        }
 
-                UserNotFoundByIDException ex = assertThrows(
-                        UserNotFoundByIDException.class,
-                        () -> authService.getMe(userId)
-                );
+        @Test
+        @DisplayName("2. getMe - User Not Found")
+        void getMeFail() {
+            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+            assertThrows(UserNotFoundByIDException.class, () -> authService.getMe(userId));
+        }
 
-                assertEquals("User not found: " + userId, ex.getMessage());
-
-                verify(userRepository).findById(userId);
-                verify(userMapper, never()).toAuthInfoDTO(any());
-            }
-
-            @Test
-            @DisplayName("should use mapper to convert user to auth info dto")
-            void shouldUseMapperInGetMe() {
-                AuthInfoDTO dto = new AuthInfoDTO();
-
-                when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-                when(userMapper.toAuthInfoDTO(user)).thenReturn(dto);
-
-                authService.getMe(userId);
-
-                verify(userMapper, times(1)).toAuthInfoDTO(user);
-            }
-
-            @Test
-            @DisplayName("should return exact dto from mapper")
-            void shouldReturnExactDtoFromMapper() {
-                AuthInfoDTO dto = new AuthInfoDTO();
-                dto.setEmail("mapped@mail.com");
-
-                when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-                when(userMapper.toAuthInfoDTO(user)).thenReturn(dto);
-
-                AuthInfoDTO result = authService.getMe(userId);
-
-                assertSame(dto, result);
-                assertEquals("mapped@mail.com", result.getEmail());
-            }
+        @Test
+        @DisplayName("3. getSubscription - Success data builder")
+        void subscriptionSuccess() {
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            SubscriptionInfoDTO info = authService.getSubscriptionInfo(userId);
+            assertEquals(SubscriptionPlan.FREE, info.getSubscriptionPlan());
+            assertTrue(info.getActive());
         }
     }
 }

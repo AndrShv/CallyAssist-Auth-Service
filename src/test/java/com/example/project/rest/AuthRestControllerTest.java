@@ -5,10 +5,7 @@ import com.example.project.dto.UserLoginDTO;
 import com.example.project.dto.UserRegisterDTO;
 import com.example.project.dto.UserResponseDTO;
 import com.example.project.handlers.OAuth2SuccessHandler;
-import com.example.project.interfaces.GenerateTokenForOAuth2;
-import com.example.project.interfaces.GetMe;
-import com.example.project.interfaces.Login;
-import com.example.project.interfaces.Register;
+import com.example.project.interfaces.*;
 import com.example.project.services.custom.CustomOAuth2UserService;
 import com.example.project.services.custom.CustomUserDetailsService;
 import com.example.project.util.JwtUtil;
@@ -55,7 +52,8 @@ class AuthRestControllerTest {
 
     @MockBean
     private CustomUserDetailsService customUserDetailsService;
-
+    @MockBean
+    private GetSubscriptionInfo getSubscriptionInfo;
     @MockBean
     private CustomOAuth2UserService customOAuth2UserService;
 
