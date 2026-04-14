@@ -6,24 +6,19 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
-    
-    private final GenerateTokenForOAuth2 generateTokenForOAuth2;
 
-    @Value("${app.oauth2.redirect-uri:http://localhost:8081/api/auth/oauth2/token}")
-    private String redirectUri;
+    private final GenerateTokenForOAuth2 generateTokenForOAuth2;
+    private final String redirectUri;
 
     @Override
     public void onAuthenticationSuccess(

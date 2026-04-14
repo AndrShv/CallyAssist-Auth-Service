@@ -39,11 +39,16 @@ public class CustomOAuth2UserService extends OidcUserService {
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         log.info("OAuth2 login: {}", normalizedEmail);
 
-        Optional<User> existing = userRepository.findByEmailIgnoreCase(normalizedEmail);
+        Optional<User> existingOpt = userRepository.findByEmailIgnoreCase(normalizedEmail);
+        User user;
 
-        User user = existing.isPresent()
-                ? updateExisting(existing.get(), oidcUser)
-                : createNew(normalizedEmail, oidcUser);
+        if (existingOpt.isPresent()) {
+            user = existingOpt.get();
+            user = updateExisting(user, oidcUser);
+
+        } else {
+            user = createNew(normalizedEmail, oidcUser);
+        }
 
         return new CustomOidcUser(oidcUser, user);
     }
@@ -51,7 +56,6 @@ public class CustomOAuth2UserService extends OidcUserService {
     private User updateExisting(User user, OidcUser oidcUser) {
         boolean dirty = false;
 
-        // обновляем username если он был пустым или авто-сгенерированным
         String oauthName = oidcUser.getFullName();
         if (oauthName != null && !oauthName.isBlank()) {
             if (user.getUsername() == null || user.getUsername().isBlank()
@@ -62,7 +66,6 @@ public class CustomOAuth2UserService extends OidcUserService {
             }
         }
 
-        // обновляем аватар из Google
         String picture = oidcUser.getPicture();
         if (picture != null && !picture.equals(user.getAvatarUrl())) {
             user.setAvatarUrl(picture);
@@ -90,7 +93,7 @@ public class CustomOAuth2UserService extends OidcUserService {
         User newUser = User.builder()
                 .email(email)
                 .username(username)
-                .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                .password(passwordEncoder.encode(UUID.randomUUID().toString())) // случайный пароль
                 .role(Role.USER)
                 .subscriptionPlan(SubscriptionPlan.FREE)
                 .avatarUrl(picture)
