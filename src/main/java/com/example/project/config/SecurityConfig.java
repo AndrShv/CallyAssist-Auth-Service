@@ -3,6 +3,7 @@ package com.example.project.config;
 import com.example.project.filter.JwtFilter;
 import com.example.project.handlers.OAuth2SuccessHandler;
 import com.example.project.interfaces.GenerateTokenForOAuth2;
+import com.example.project.repository.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.example.project.services.custom.CustomOAuth2UserService;
 import com.example.project.services.custom.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.*;
 
 @Configuration
 @EnableWebSecurity
@@ -31,8 +33,9 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final CustomOAuth2UserService oAuth2UserService;
     private final PasswordEncoder passwordEncoder;
+    private final HttpCookieOAuth2AuthorizationRequestRepository cookieRepository;
 
-    @Value("${app.oauth2.redirect-uri:http://localhost:8081/api/auth/oauth2/token}")
+    @Value("${app.oauth2.redirect-uri:com.andrshv.cally://oauth}")
     private String redirectUri;
 
     private static final String[] PUBLIC = {
@@ -40,11 +43,12 @@ public class SecurityConfig {
             "/api/auth/register",
             "/api/auth/login",
             "/api/auth/oauth2/token",
+            "/api/password/reset/**",
             "/oauth2/**",
             "/login/oauth2/**",
             "/actuator/**",
             "/swagger-ui/**",
-            "/v3/api-docs/**",
+            "/v3/api-docs/**"
     };
 
     @Bean
@@ -52,26 +56,42 @@ public class SecurityConfig {
             HttpSecurity http,
             OAuth2SuccessHandler oAuth2SuccessHandler
     ) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+        http.csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .securityContext(sc ->
+                        sc.securityContextRepository(
+                                new NullSecurityContextRepository()
+                        )
+                )
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
+
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(ui -> ui.oidcUserService(oAuth2UserService))
+                        .authorizationEndpoint(auth ->
+                                auth.authorizationRequestRepository(cookieRepository
+                                )
+                        )
+                        .userInfoEndpoint(ui ->
+                                ui.oidcUserService(oAuth2UserService)
+                        )
                         .successHandler(oAuth2SuccessHandler)
                 )
-                .authenticationProvider(authenticationProvider())
-              .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public OAuth2SuccessHandler oAuth2SuccessHandler(GenerateTokenForOAuth2 generateTokenForOAuth2) {
+    public OAuth2SuccessHandler oAuth2SuccessHandler(
+            GenerateTokenForOAuth2 generateTokenForOAuth2
+    ) {
         return new OAuth2SuccessHandler(generateTokenForOAuth2, redirectUri);
     }
 

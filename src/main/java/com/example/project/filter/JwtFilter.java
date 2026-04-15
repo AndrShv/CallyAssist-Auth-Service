@@ -39,6 +39,11 @@ public class JwtFilter extends OncePerRequestFilter {
         log.debug("Processing request: {} {}", request.getMethod(), request.getRequestURI());
         log.debug("Token found: {}", token != null ? "YES (first 20 chars: " + token.substring(0, Math.min(20, token.length())) + "...)" : "NO");
 
+        if (request.getRequestURI().startsWith("/oauth2")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         if (token != null) {
             try {
                 if (jwtUtil.validateToken(token)) {
@@ -121,6 +126,7 @@ public class JwtFilter extends OncePerRequestFilter {
                         path.startsWith("/css/") ||
                         path.startsWith("/static/") ||
                         path.startsWith("/images/") ||
+                        path.startsWith("/login/oauth2/") ||
                         path.startsWith("/js/");
 
 

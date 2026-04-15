@@ -2,6 +2,8 @@ package com.example.project.rest;
 
 import com.example.project.dto.*;
 import com.example.project.interfaces.*;
+import com.example.project.services.custom.CustomOidcUser;
+import com.example.project.services.custom.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,30 +40,35 @@ public class AuthRestController {
 
     @GetMapping("/me")
     public ResponseEntity<AuthInfoDTO> me(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            log.error("Unauthorized access to /me endpoint");
+
+        if (authentication == null) {
             return ResponseEntity.status(401).build();
         }
 
-        log.debug("REST request to get user: {}", authentication.getName());
-        UUID userId = UUID.fromString(authentication.getPrincipal().toString());
-        return ResponseEntity.ok(getMe.getMe((userId)));
+        Object principal = authentication.getPrincipal();
+
+        UUID userId;
+
+        if (principal instanceof CustomUserDetails cud) {
+            userId = cud.getId();
+        } else if (principal instanceof CustomOidcUser oidcUser) {
+            userId = oidcUser.getUser().getId();
+        } else {
+            userId = UUID.fromString(principal.toString());
+        }
+
+        return ResponseEntity.ok(getMe.getMe(userId));
     }
 
-    @GetMapping("/oauth2/token")
-    public ResponseEntity<Map<String, String>> oauth2Token(@RequestParam UUID userId) {
-        log.debug("REST request to generate OAuth2 token for userId: {}", userId);
-
-        String token = generateTokenForOAuth2.generateTokenForOAuth2(userId);
-
-        return ResponseEntity.ok(Map.of(
-                "token", token,
-                "type", "Bearer"
-        ));
-    }
     @GetMapping("/subscription")
-    public ResponseEntity<SubscriptionInfoDTO> getSubscription(@RequestParam UUID userId) {
+    public ResponseEntity<SubscriptionInfoDTO> getSubscription(Authentication authentication) {
+
+        UUID userId = UUID.fromString(authentication.getPrincipal().toString());
+
         log.debug("REST request to get subscription info for userId: {}", userId);
+
         return ResponseEntity.ok(getSubscriptionInfo.getSubscriptionInfo(userId));
     }
+
+    
 }
