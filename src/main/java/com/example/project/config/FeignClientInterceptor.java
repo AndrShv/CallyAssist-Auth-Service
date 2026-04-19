@@ -30,20 +30,13 @@ public class FeignClientInterceptor implements RequestInterceptor {
 
     @Override
     public void apply(RequestTemplate template) {
-        String token = getJwtFromHeader();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        if (token == null) {
-            token = getJwtFromCookie();
-        }
-        if (token == null) {
-            token = getOAuth2Token();
-        }
-
-        if (token != null) {
+        if (auth != null && auth.getCredentials() instanceof String token) {
             template.header("Authorization", "Bearer " + token);
-            log.debug("Added Authorization header to Feign request");
+            log.debug("Feign: added JWT from SecurityContext");
         } else {
-            log.warn("No authentication token found for Feign request");
+            log.warn("Feign: no token in SecurityContext");
         }
     }
 

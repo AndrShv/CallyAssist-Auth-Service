@@ -30,8 +30,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             Authentication authentication
     ) throws IOException {
 
-        CustomOidcUser user = (CustomOidcUser) authentication.getPrincipal();
-
+        if (!(authentication.getPrincipal() instanceof CustomOidcUser user)) {
+            throw new IllegalStateException("Invalid OAuth2 principal");
+        }
         UUID userId = user.getUser().getId();
 
         String jwt = generateTokenForOAuth2.generateTokenForOAuth2(userId);

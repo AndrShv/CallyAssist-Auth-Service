@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -61,16 +62,20 @@ public class AuthRestController {
     }
 
     @GetMapping("/subscription")
-    public ResponseEntity<SubscriptionInfoDTO> getSubscription(Authentication authentication) {
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(401).build();
+    public ResponseEntity<SubscriptionInfoDTO> getSubscription(
+            Authentication authentication,
+            @RequestParam(required = false) UUID userId
+    ) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof CustomUserDetails user) {
+                return ResponseEntity.ok(getSubscriptionInfo.getSubscriptionInfo(user.getId()));
+            }
         }
-
-        UUID userId = UUID.fromString(authentication.getPrincipal().toString());
-
-        return ResponseEntity.ok(getSubscriptionInfo.getSubscriptionInfo(userId));
+        if (userId != null) {
+            return ResponseEntity.ok(getSubscriptionInfo.getSubscriptionInfo(userId));
+        }
+        return ResponseEntity.status(401).build();
     }
-
     
 }
