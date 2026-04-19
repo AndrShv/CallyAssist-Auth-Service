@@ -66,21 +66,21 @@ public class RabbitMqConfig {
 
     // --- Exchanges ---
     @Bean
-    public TopicExchange homeExchange() {
+    public TopicExchange authExchange() {
         return new TopicExchange("auth.exchange", true, false);
     }
 
     // --- Queues ---
     @Bean
-    public Queue homeQueue() {
+    public Queue authQueue() {
         return new Queue("auth.cally.mobile.queue", true);
     }
 
 
     // --- Bindings ---
     @Bean
-    public Binding bindingHome(Queue homeQueue, TopicExchange homeExchange) {
-        return BindingBuilder.bind(homeQueue).to(homeExchange).with("auth.#");
+    public Binding bindingChat(Queue authQueue, TopicExchange authExchange) {
+        return BindingBuilder.bind(authQueue).to(authExchange).with("auth.#");
     }
 
 
