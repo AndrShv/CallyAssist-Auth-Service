@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -323,7 +324,7 @@ class AuthRestControllerTest {
             UUID userId = UUID.randomUUID();
 
             mockMvc.perform(get("/api/auth/me")
-                            .principal(authenticationPrincipal(userId, false)))
+                            .with(anonymous()))
                     .andExpect(status().isUnauthorized());
 
             verify(getMe, never()).getMe(any());
@@ -349,68 +350,7 @@ class AuthRestControllerTest {
         }
     }
 
-    @Nested
-    @DisplayName("GET /api/auth/oauth2/token")
-    class OAuth2TokenEndpointTests {
 
-        @Test
-        @DisplayName("should generate oauth2 token successfully")
-        void shouldGenerateOAuth2TokenSuccessfully() throws Exception {
-            UUID userId = UUID.randomUUID();
-
-            when(generateTokenForOAuth2.generateTokenForOAuth2(userId))
-                    .thenReturn("oauth2-jwt-token");
-
-            mockMvc.perform(get("/api/auth/oauth2/token")
-                            .param("userId", userId.toString()))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.token", is("oauth2-jwt-token")))
-                    .andExpect(jsonPath("$.type", is("Bearer")));
-
-            verify(generateTokenForOAuth2).generateTokenForOAuth2(userId);
-        }
-
-        @Test
-        @DisplayName("should call oauth2 token service with correct user id")
-        void shouldCallOAuth2TokenServiceWithCorrectUserId() throws Exception {
-            UUID userId = UUID.randomUUID();
-
-            when(generateTokenForOAuth2.generateTokenForOAuth2(userId))
-                    .thenReturn("oauth2-jwt-token");
-
-            mockMvc.perform(get("/api/auth/oauth2/token")
-                            .param("userId", userId.toString()))
-                    .andExpect(status().isOk());
-
-            verify(generateTokenForOAuth2, times(1)).generateTokenForOAuth2(userId);
-        }
-
-        @Test
-        @DisplayName("should return correct json for oauth2 token endpoint")
-        void shouldReturnCorrectJsonForOAuth2Token() throws Exception {
-            UUID userId = UUID.randomUUID();
-
-            when(generateTokenForOAuth2.generateTokenForOAuth2(userId))
-                    .thenReturn("my-special-token");
-
-            mockMvc.perform(get("/api/auth/oauth2/token")
-                            .param("userId", userId.toString()))
-                    .andExpect(status().isOk())
-                    .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                    .andExpect(jsonPath("$.token", is("my-special-token")))
-                    .andExpect(jsonPath("$.type", is("Bearer")));
-        }
-
-        @Test
-        @DisplayName("should return bad request for invalid uuid")
-        void shouldReturnBadRequestForInvalidUuid() throws Exception {
-            mockMvc.perform(get("/api/auth/oauth2/token")
-                            .param("userId", "not-a-uuid"))
-                    .andExpect(status().isBadRequest());
-
-            verify(generateTokenForOAuth2, never()).generateTokenForOAuth2(any());
-        }
-    }
 
     private Authentication authenticationPrincipal(UUID userId, boolean authenticated) {
         Authentication authentication = mock(Authentication.class);

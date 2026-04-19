@@ -6,6 +6,7 @@ import com.example.project.interfaces.GenerateTokenForOAuth2;
 import com.example.project.repository.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.example.project.services.custom.CustomOAuth2UserService;
 import com.example.project.services.custom.CustomUserDetailsService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +23,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.context.*;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Configuration
 @EnableWebSecurity
@@ -61,15 +64,11 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .securityContext(sc ->
-                        sc.securityContextRepository(
-                                new NullSecurityContextRepository()
-                        )
-                )
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/email/send-code").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
 
@@ -107,4 +106,5 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
         return cfg.getAuthenticationManager();
     }
+
 }

@@ -63,9 +63,11 @@ public class AuthRestController {
     @GetMapping("/subscription")
     public ResponseEntity<SubscriptionInfoDTO> getSubscription(Authentication authentication) {
 
-        UUID userId = UUID.fromString(authentication.getPrincipal().toString());
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
+        }
 
-        log.debug("REST request to get subscription info for userId: {}", userId);
+        UUID userId = UUID.fromString(authentication.getPrincipal().toString());
 
         return ResponseEntity.ok(getSubscriptionInfo.getSubscriptionInfo(userId));
     }
