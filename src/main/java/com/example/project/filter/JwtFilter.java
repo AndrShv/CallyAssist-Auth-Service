@@ -1,7 +1,6 @@
 package com.example.project.filter;
 
 
-
 import com.example.project.services.custom.CustomUserDetailsService;
 import com.example.project.util.JwtUtil;
 import jakarta.servlet.FilterChain;
@@ -40,6 +39,11 @@ public class JwtFilter extends OncePerRequestFilter {
         log.debug("Processing request: {} {}", request.getMethod(), request.getRequestURI());
         log.debug("Token found: {}", token != null ? "YES (first 20 chars: " + token.substring(0, Math.min(20, token.length())) + "...)" : "NO");
 
+        if (request.getRequestURI().startsWith("/oauth2")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         if (token != null) {
             try {
                 if (jwtUtil.validateToken(token)) {
@@ -63,9 +67,12 @@ public class JwtFilter extends OncePerRequestFilter {
             log.debug("User loaded: {}, userId: {}, authorities: {}",
                     userDetails.getUsername(), userId, userDetails.getAuthorities());
 
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    userId.toString(), null, userDetails.getAuthorities());
-
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            token,
+                            userDetails.getAuthorities()
+                    );
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
             log.info("✅ Authentication set for user: {} (userId: {}) with roles: {}",
@@ -113,20 +120,16 @@ public class JwtFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
 
-        boolean shouldSkip =
-                path.startsWith("/api/auth/") && !path.equals("/api/auth/me") ||
-                        path.startsWith("/api/password/reset/") ||
-                        path.startsWith("/actuator/") ||
-                        path.startsWith("/auth/") ||
-                        path.startsWith("/oauth2/") ||
-                        path.startsWith("/css/") ||
-                        path.startsWith("/static/") ||
-                        path.startsWith("/images/") ||
-                        path.startsWith("/js/");
-
-
-        log.debug("Path: {}, shouldNotFilter: {}", path, shouldSkip);
-        return shouldSkip;
+        return path.equals("/api/auth/login") ||
+                path.equals("/api/auth/register") ||
+                path.startsWith("/api/password/reset/") ||
+                path.startsWith("/actuator/") ||
+                path.startsWith("/oauth2/") ||
+                path.startsWith("/login/oauth2/") ||
+                path.startsWith("/css/") ||
+                path.startsWith("/js/") ||
+                path.startsWith("/images/") ||
+                path.startsWith("/static/");
     }
 
 }
