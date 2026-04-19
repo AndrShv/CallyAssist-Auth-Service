@@ -6,16 +6,21 @@ import com.example.project.exceptions.EmailSendingExeption;
 import com.example.project.filter.JwtFilter;
 import com.example.project.handlers.OAuth2SuccessHandler;
 import com.example.project.interfaces.EmailService;
+import com.example.project.repository.HttpCookieOAuth2AuthorizationRequestRepository;
+import com.example.project.services.custom.CustomOAuth2UserService;
+import com.example.project.services.custom.CustomUserDetailsService;
 import com.example.project.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,7 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(EmailRestController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@Import(SecurityConfig.class) // Добавляем импорт правил безопасности
+@AutoConfigureMockMvc // Убираем (addFilters = false), теперь фильтры работают
 @TestPropertySource(properties = {
         "server.port=8081"
 })
@@ -43,6 +49,18 @@ class EmailRestControllerTest {
 
     @MockBean
     private JwtFilter jwtFilter;
+
+    @MockBean
+    private CustomUserDetailsService customUserDetailsService;
+
+    @MockBean
+    private CustomOAuth2UserService oAuth2UserService;
+
+    @MockBean
+    private PasswordEncoder passwordEncoder;
+
+    @MockBean
+    private HttpCookieOAuth2AuthorizationRequestRepository cookieRepository;
 
     @MockBean
     private OAuth2SuccessHandler oAuth2SuccessHandler;

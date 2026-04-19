@@ -21,8 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(
         controllers = PasswordResetRestController.class,
@@ -92,7 +91,7 @@ class PasswordResetRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(content().string("Email service error"));
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"));
     }
 
     // ===============================
@@ -151,9 +150,8 @@ class PasswordResetRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(content().string("Token invalid or expired"));
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"));
     }
-
     @Test
     void confirmResetPassword_emptyBody_shouldReturn400() throws Exception {
         mockMvc.perform(post("/api/password/reset/confirm")
