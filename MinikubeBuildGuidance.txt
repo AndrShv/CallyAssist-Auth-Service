@@ -8,7 +8,7 @@ mvn clean package -DskipTests
 eval $(minikube docker-env)
 
 # Собираем образ для нашего приложения, используя Docker внутри миникуба
-docker build -t auth-service:v1 .
+docker build -t auth-service:v2 .
 
 # Теперь, когда образ построен, мы можем создать деплоймент и сервис для нашего приложения
 kubectl apply -f k8s/db/
