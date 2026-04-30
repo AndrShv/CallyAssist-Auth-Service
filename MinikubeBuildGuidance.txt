@@ -1,0 +1,55 @@
+minikube start
+# Переключаем Docker на контекст миникуба, чтобы он видел твои локальные образы
+eval $(minikube docker-env)
+
+# Собираем образ для нашего приложения, используя Docker внутри миникуба
+docker build -t auth-service:v1 .
+
+# Теперь, когда образ построен, мы можем создать деплоймент и сервис для нашего приложения
+kubectl apply -f k8s/db/
+kubectl apply -f k8s/log/prometheus/
+kubectl apply -f k8s/log/grafana/
+kubectl apply -f k8s/service/
+
+
+# Проверяем, что все поды запустились
+kubectl get pods
+
+# Если все поды в статусе Running, то мы можем перейти к следующему шагу - настройке порт-форвардинга для доступа к сервису
+# Открываем доступ к бэкенду
+kubectl port-forward service/auth-service 8081:8081
+
+# Если хочешь зайти в Grafana
+kubectl port-forward service/grafana 3000:3000
+
+
+# Секреты
+kubectl create secret generic auth-service-secrets \
+  --from-literal=DB_PASSWORD='1111' \
+  --from-literal=JWT_SECRET='SuperSecureKeyThatIsLongEnough1234567890orgspringframeworkbootSpringApplication' \
+  --from-literal=RABBIT_PASSWORD='guest' \
+  --from-literal=SMTP_PASSWORD='nghf dltk oiaf cyag' \
+  --from-literal=GOOGLE_CLIENT_SECRET='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'
+
+# Что б обновить секреты, удаляем старые и создаем новые с обновленными значениями. Важно: при удалении секрета, все поды, которые его используют, могут перестать работать, пока не будут перезапущены с новым секретом. Поэтому после обновления секрета, рекомендуется перезапустить поды, чтобы они начали использовать новые значения.
+# 1. Удаляем старый секрет
+kubectl delete secret auth-service-secrets
+
+# 2. Создаем заново с обновленным значением
+kubectl create secret generic auth-service-secrets \
+  --from-literal=DB_PASSWORD='1111' \
+  --from-literal=JWT_SECRET='...' \
+  --from-literal=RABBIT_PASSWORD='guest' \
+  --from-literal=SMTP_PASSWORD='...' \
+  --from-literal=GOOGLE_CLIENT_SECRET='НОВЫЙ_СЕКРЕТ_ЗДЕСЬ'
+
+
+
+
+
+# Что бы обновить образ, нужно сначала удалить старый образ из миникуба, а затем построить новый. Вот как это сделать:
+1) Пересобери JAR:  mvn clean package -DskipTests
+2) Обнови образ в Minikube:   eval $(minikube docker-env)
+3) Обновить версию в Deployment:   docker build -t auth-service:v1 .
+4) Подставь новый Image:  kubectl set image deployment/auth-service auth-service=auth-service:v3
+3) Перезапусти под:   kubectl rollout restart deployment auth-service
