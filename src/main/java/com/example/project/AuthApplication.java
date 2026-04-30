@@ -8,5 +8,6 @@ public class AuthApplication {
     public static void main(String[] args) {
         SpringApplication.run(AuthApplication.class, args);
         //docker exec -it auth-cally-mobile-service-mysql mysql -u root -p
+        //ngrok start --all
     }
 }

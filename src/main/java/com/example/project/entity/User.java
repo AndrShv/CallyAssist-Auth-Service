@@ -48,7 +48,6 @@ public class User {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
-    // счётчик голосовых запросов за сегодня
     @Column(name = "voice_requests_today", nullable = false)
     @Builder.Default
     private Integer voiceRequestsToday = 0;
