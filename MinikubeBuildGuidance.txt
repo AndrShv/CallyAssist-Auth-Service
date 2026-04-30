@@ -34,7 +34,7 @@ kubectl create secret generic auth-service-secrets \
   --from-literal=JWT_SECRET='SuperSecureKeyThatIsLongEnough1234567890orgspringframeworkbootSpringApplication' \
   --from-literal=RABBIT_PASSWORD='guest' \
   --from-literal=SMTP_PASSWORD='nghf dltk oiaf cyag' \
-  --from-literal=GOOGLE_CLIENT_SECRET='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'
+  --from-literal=GOOGLE_CLIENT_SECRET='--GOOGLE_CLIENT_SECRET--'
 
 # Что б обновить секреты, удаляем старые и создаем новые с обновленными значениями. Важно: при удалении секрета, все поды, которые его используют, могут перестать работать, пока не будут перезапущены с новым секретом. Поэтому после обновления секрета, рекомендуется перезапустить поды, чтобы они начали использовать новые значения.
 # 1. Удаляем старый секрет
