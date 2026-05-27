@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+data:
+  # --- Server ---
+  SERVER_PORT: "8081"
+
+  # --- Database ---
+  DB_USERNAME: "root"
+  DB_PASSWORD: "1111"
+  DB_URL: "jdbc:mysql://mysql-auth-service:3306/authservice?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+
+  # --- JWT ---
+  JWT_EXPIRATION_MS: "86400000"
+  JWT_REFRESH_EXPIRATION_MS: "172800000"
+
+  # --- RabbitMQ ---
+  RABBIT_HOST: "rabbitmq"
+  RABBIT_PORT: "5672"
+  RABBIT_USERNAME: "guest"
+  AUTH_QUEUE_NAME: "auth.cally.mobile.queue"
+
+  # --- SMTP ---
+  SMTP_HOST: "smtp.gmail.com"
+  SMTP_PORT: "587"
+  SMTP_USERNAME: "andrey678a@gmail.com"
+
+  # --- Google OAuth2 ---
+  GOOGLE_CLIENT_ID: "581512564337-4lfqbr8mffjrfvslnhpse7es6o1ke902.apps.googleusercontent.com"
+  GOOGLE_REDIRECT_URI: "https://knox-exopoditic-azalea.ngrok-free.dev/login/oauth2/code/google"
+  APP_OAUTH2_REDIRECT_URI: "com.andrshv.cally://oauth"
+
+  # --- Resilience4j ---
+  EMAILSERVICE_CIRCUIT_SLIDING_WINDOW: "5"
+  EMAILSERVICE_CIRCUIT_FAILURE_RATE: "50"
+  EMAILSERVICE_CIRCUIT_WAIT_DURATION: "10s"
+  EMAILSERVICE_RETRY_MAX_ATTEMPTS: "3"
+  EMAILSERVICE_RETRY_WAIT_DURATION: "1s"

@@ -22,8 +22,8 @@ public class CustomOidcUser implements OidcUser {
         this.user = user;
     }
 
-    public User getUser()      { return user; }
-    public String getEmail()   { return user.getEmail(); }
+    public User getUser() { return user; }
+    public String getEmail() { return user.getEmail(); }
 
     @Override
     public Map<String, Object> getClaims() { return delegate.getClaims(); }

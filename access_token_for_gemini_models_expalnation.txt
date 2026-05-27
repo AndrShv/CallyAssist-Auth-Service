@@ -1,0 +1,14 @@
+# https://developers.google.com/oauthplayground
+на сайте в поле сниуз ввести https://www.googleapis.com/auth/generative-language.retriever
+# дальше дадут тебе Authorization code, после нажать Exchange authorization code for tokens ->
+  там будет Access token, который нужно вставить в код для получения ответа от модели Gemini.
+
+
+# https://console.cloud.google.com/
+тут можно создать ключ API, Идентификаторы клиентов OAuth 2.0, Служебные счета, также включить API для доступа к календарю,
+ контактам и т.д.
+
+
+
+# https://aistudio.google.com/rate-limit
+тут можно посмотреть лимиты на использование API для моделей Gemini, чтобы не превысить их и не получить ошибку 429 Too Many Requests.

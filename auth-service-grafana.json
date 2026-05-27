@@ -1,0 +1,95 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "auth-dashboard",
+    "title": "Auth Service Monitoring",
+    "tags": ["auth", "metrics"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "type": "stat",
+        "title": "Successful Logins",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(rate(auth_login_success_total[1m]))",
+            "legendFormat": "success"
+          }
+        ],
+        "gridPos": {"x":0,"y":0,"w":6,"h":4}
+      },
+      {
+        "type": "stat",
+        "title": "Failed Logins",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(rate(auth_login_failed_total[1m]))",
+            "legendFormat": "failed"
+          }
+        ],
+        "gridPos": {"x":6,"y":0,"w":6,"h":4}
+      },
+      {
+        "type": "stat",
+        "title": "Emails Sent",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(rate(auth_email_sent_total[1m]))",
+            "legendFormat": "emails"
+          }
+        ],
+        "gridPos": {"x":0,"y":4,"w":6,"h":4}
+      },
+      {
+        "type": "stat",
+        "title": "JWT Tokens Generated",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(rate(auth_jwt_generated_total[1m]))",
+            "legendFormat": "JWT"
+          }
+        ],
+        "gridPos": {"x":6,"y":4,"w":6,"h":4}
+      },
+      {
+        "type": "graph",
+        "title": "HTTP Requests Latency",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "rate(http_server_requests_seconds_sum[1m]) / rate(http_server_requests_seconds_count[1m])",
+            "legendFormat": "avg latency"
+          }
+        ],
+        "gridPos": {"x":0,"y":8,"w":12,"h":6}
+      },
+      {
+        "type": "graph",
+        "title": "CPU Usage",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "100 - (avg by(instance)(irate(node_cpu_seconds_total{mode='idle'}[1m])) * 100)",
+            "legendFormat": "CPU"
+          }
+        ],
+        "gridPos": {"x":0,"y":14,"w":6,"h":4}
+      },
+      {
+        "type": "graph",
+        "title": "Memory Usage",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100",
+            "legendFormat": "RAM %"
+          }
+        ],
+        "gridPos": {"x":6,"y":14,"w":6,"h":4}
+      }
+    ]
+  }
+}
